@@ -1,0 +1,294 @@
+Build “Explain Anything Visualizer” App (Node.js, Bootstrap, Novita AI)
+Goal:
+Create a full-stack AI-powered web app in a single folder (Node.js + Bootstrap + JS) called “Explain Anything Visualizer”.
+This app will use Novita AI to explain any concept, molecule, formula, or technical topic at three selectable difficulty levels (Low, Medium, High).
+All user queries and answers are saved as a personal "Knowledge Gallery" in the browser.
+
+Project Requirements:
+All code, assets, and docs must be in one folder (no split frontend/backend folders).
+Backend: Node.js (Express).
+Expose an /api/explain endpoint.
+Accepts POST JSON: { prompt: "question", level: "low"|"medium"|"high" }.
+For each level, use a different “system prompt” for Novita AI (OpenAI-compatible API):
+Low: Short, simple, for children/beginners.
+Medium: Step-by-step, with analogies/examples, for students.
+High: In-depth, technical, for advanced users.
+Call Novita AI API with user/system prompt and return the answer as JSON.
+Show the Novita AI API integration clearly in your code for hackathon judging.
+Frontend: Bootstrap 5, vanilla JS, and custom CSS.
+Textarea for user input.
+Level dropdown for difficulty selection.
+“Explain” button to submit.
+Show explanation in a styled Bootstrap card.
+“Save to Gallery” button to add result to browser localStorage.
+Button to view "Knowledge Gallery" (saved history).
+Gallery shows past prompts, answers, levels, and time, with “clear all” button.
+Branding: Clearly display “Powered by Novita AI” (logo + link) in footer and in README.
+Docs: Include a README.md with:
+Project summary and features
+Setup/running instructions
+Novita AI integration explanation
+API call example
+Screenshot placeholder
+
+🟢 Starter Example Code and Files
+server.js
+js
+Copy
+Edit
+// server.js
+require('dotenv').config();
+const express = require('express');
+const fetch = require('node-fetch');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.static(__dirname));
+app.use(express.json());
+
+const NOVITA_API_KEY = process.env.NOVITA_API_KEY;
+const NOVITA_API_URL = "https://api.novita.ai/v3/openai/chat/completions";
+const MODEL = "qwen/qwen3-4b-fp8";
+
+const SYSTEM_PROMPTS = {
+  low: "You are a friendly explainer. Give a short, simple explanation for absolute beginners or children. Avoid jargon.",
+  medium: "You are a helpful science and technology tutor. Give a clear, step-by-step explanation with examples and analogies for a student.",
+  high: "You are a subject matter expert. Give an in-depth, technical explanation suitable for advanced learners or professionals, with details and references."
+};
+
+app.post('/api/explain', async (req, res) => {
+  const { prompt, level } = req.body;
+  if (!prompt) return res.status(400).json({ error: "Prompt required" });
+
+  const systemPrompt = SYSTEM_PROMPTS[level] || SYSTEM_PROMPTS.medium;
+
+  const payload = {
+    model: MODEL,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt }
+    ],
+    response_format: { type: "text" },
+    stream: false
+  };
+
+  try {
+    const response = await fetch(NOVITA_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${NOVITA_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    res.json({ explanation: data.choices[0]?.message?.content || "No explanation received." });
+  } catch (e) {
+    res.status(500).json({ error: "AI API error: " + e.message });
+  }
+});
+
+// Serve index.html for all routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Explain Anything app running on http://localhost:${PORT}`);
+});
+.env.example
+ini
+Copy
+Edit
+NOVITA_API_KEY=your_novita_api_key_here
+index.html
+html
+Copy
+Edit
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Explain Anything Visualizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container py-5">
+    <h1 class="text-center mb-4">Explain Anything Visualizer</h1>
+    <div class="card mx-auto" style="max-width: 600px;">
+      <div class="card-body">
+        <textarea id="promptInput" class="form-control mb-3" rows="4" placeholder="Type any concept, molecule, formula, or topic..."></textarea>
+        <div class="mb-3">
+          <label for="levelSelect" class="form-label">Explanation Level:</label>
+          <select class="form-select" id="levelSelect">
+            <option value="low">Low (Simple)</option>
+            <option value="medium" selected>Medium (Step-by-step)</option>
+            <option value="high">High (Technical)</option>
+          </select>
+        </div>
+        <button id="explainBtn" class="btn btn-primary w-100">Explain</button>
+        <div id="resultArea" class="mt-4"></div>
+        <button class="btn btn-secondary mt-2 w-100" onclick="showGallery()">Show Knowledge Gallery</button>
+      </div>
+    </div>
+    <div id="galleryArea" class="mt-5"></div>
+    <footer class="text-center mt-5">
+      Powered by <a href="https://novita.ai" target="_blank"><img src="https://novita.ai/favicon.ico" style="height:1em;vertical-align:middle"/> Novita AI</a>
+    </footer>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>
+main.js
+js
+Copy
+Edit
+async function getExplanation(prompt, level) {
+  const response = await fetch('/api/explain', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, level })
+  });
+  if (!response.ok) throw new Error("API error: " + response.status);
+  const data = await response.json();
+  return data.explanation;
+}
+
+function saveHistory(prompt, level, answer) {
+  let history = JSON.parse(localStorage.getItem('aiHistory') || '[]');
+  history.unshift({ prompt, level, answer, time: new Date().toISOString() });
+  localStorage.setItem('aiHistory', JSON.stringify(history));
+}
+
+function renderHistory() {
+  let history = JSON.parse(localStorage.getItem('aiHistory') || '[]');
+  const galleryArea = document.getElementById('galleryArea');
+  if (!history.length) {
+    galleryArea.innerHTML = "<div class='alert alert-info'>No saved explanations yet.</div>";
+    return;
+  }
+  galleryArea.innerHTML = `
+    <h4>Knowledge Gallery</h4>
+    <button class='btn btn-sm btn-danger mb-3' onclick='clearGallery()'>Clear All</button>
+    <div class='row'>
+      ${history.map(item => `
+        <div class="col-md-6 mb-3">
+          <div class="card">
+            <div class="card-body">
+              <span class="badge bg-secondary mb-2">${item.level.toUpperCase()}</span>
+              <h6>Prompt:</h6>
+              <div>${item.prompt}</div>
+              <h6 class="mt-2">Explanation:</h6>
+              <div>${item.answer}</div>
+              <div class="text-end text-muted small mt-2">${new Date(item.time).toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function showGallery() {
+  renderHistory();
+  window.scrollTo({ top: document.getElementById('galleryArea').offsetTop, behavior: 'smooth' });
+}
+
+function clearGallery() {
+  localStorage.removeItem('aiHistory');
+  renderHistory();
+}
+
+document.getElementById('explainBtn').onclick = async function() {
+  const prompt = document.getElementById('promptInput').value.trim();
+  const level = document.getElementById('levelSelect').value;
+  if (!prompt) return;
+  document.getElementById('resultArea').innerHTML = '<div class="spinner-border"></div>';
+  try {
+    const answer = await getExplanation(prompt, level);
+    document.getElementById('resultArea').innerHTML =
+      `<div class="card mt-3"><div class="card-body"><b>${level.toUpperCase()}:</b><br>${answer}
+      <button class="btn btn-outline-success btn-sm mt-3" onclick="saveAndToast()">Save to Gallery</button>
+      </div></div>`;
+    window.saveAndToast = function() {
+      saveHistory(prompt, level, answer);
+      alert("Saved to Knowledge Gallery!");
+    };
+  } catch (e) {
+    document.getElementById('resultArea').innerHTML = '<div class="alert alert-danger">Sorry, something went wrong. Try again.</div>';
+  }
+};
+style.css
+css
+Copy
+Edit
+body {
+  background: #f7faff;
+}
+.card {
+  box-shadow: 0 2px 16px #0001;
+}
+#galleryArea .card {
+  min-height: 250px;
+}
+package.json
+json
+Copy
+Edit
+{
+  "name": "explain-anything",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.9",
+    "dotenv": "^16.4.5"
+  }
+}
+README.md
+markdown
+Copy
+Edit
+# Explain Anything Visualizer
+
+A full-stack Node.js+Bootstrap web app to explain any concept, molecule, formula, or technical topic using Novita AI—at three levels of detail.
+
+## Features
+
+- Choose explanation level: Low (simple), Medium (step-by-step), High (technical)
+- Modern Bootstrap 5 UI
+- Save every answer in your local "Knowledge Gallery"
+- Powered by Novita AI (OpenAI API compatible)
+
+## How to Run
+
+1. Install Node.js (v16+ recommended)
+2. `npm install express node-fetch dotenv`
+3. Copy `.env.example` to `.env` and add your Novita API key
+4. Run: `node server.js`
+5. Open [http://localhost:3000](http://localhost:3000)
+
+## Novita AI Integration
+
+Backend calls Novita AI API via OpenAI-compatible endpoint `/api/explain`, passing a level-based system prompt and user question.
+
+## Demo
+
+![screenshot](demo_screenshot.png)
+Instructions for Trae/Reviewer:
+
+Place all files in a single folder.
+
+Run npm install to install dependencies.
+
+Set Novita API key in .env.
+
+Run with node server.js.
+
+Open the provided link and test the “Explain Anything” workflow!
