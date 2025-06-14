@@ -12,6 +12,6 @@
     { "src": "/(.*)", "dest": "/$1" }
   ],
   "env": {
-    "NOVITA_API_KEY": "@novita_api_key"
+    "NOVITA_API_KEY": "novita_api_key"
   }
 }
