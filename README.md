@@ -2,6 +2,16 @@
 
 A full-stack web application that explains any concept, molecule, formula, or technical topic using Novita AI at three different levels of detail. The application provides a modern user interface with the ability to save explanations to a local knowledge gallery.
 
+*Built with [Trae AI](https://www.trae.ai) - Your helpful coding partner*
+
+<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+  <a href="https://www.trae.ai" target="_blank">
+    <img src="https://www.trae.ai/logo.png" alt="Trae AI Logo" height="60" onerror="this.style.display='none'; this.parentElement.innerHTML='Trae AI';"/>
+  </a>
+  <a href="https://novita.ai" target="_blank">
+    <img src="https://novita.ai/logo.png" alt="Novita AI Logo" height="60" onerror="this.style.display='none'; this.parentElement.innerHTML='Novita AI';"/>
+  </a>
+</div>
 
 ## Features
 
@@ -165,6 +175,7 @@ If no valid Novita API key is provided, the application will use mock responses 
 
 ## Acknowledgements
 
+- [Trae AI](https://www.trae.ai) for providing the development environment
 - [Novita AI](https://novita.ai) for providing the AI API
 - [Bootstrap](https://getbootstrap.com) for the UI framework
 - [Express.js](https://expressjs.com) for the web server framework
